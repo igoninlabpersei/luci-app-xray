@@ -104,6 +104,7 @@ function outbounds(proxy, config, manual_tproxy, bridge, extra_inbound, fakedns)
 
 function rules(proxy, bridge, manual_tproxy, extra_inbound, fakedns) {
     const geoip_existence = access("/usr/share/xray/geoip.dat") || false;
+    const geosite_existence = access("/usr/share/xray/geosite.dat") || false;
     const tproxy_tcp_inbound_v4_tags = ["tproxy_tcp_inbound_v4"];
     const tproxy_udp_inbound_v4_tags = ["tproxy_udp_inbound_v4"];
     const tproxy_tcp_inbound_v6_tags = ["tproxy_tcp_inbound_v6"];
@@ -149,6 +150,17 @@ function rules(proxy, bridge, manual_tproxy, extra_inbound, fakedns) {
                     outboundTag: "direct",
                     ip: ["geoip:private"]
                 });
+            }
+            if (geosite_existence) {
+                const geosite_direct_code_list = map(proxy["geosite_direct_code_list"] || [], v => index(v, ":") > 0 ? v : `geosite:${v}`);
+                if (length(geosite_direct_code_list) > 0) {
+                    push(direct_rules, {
+                        type: "field",
+                        inboundTag: [...built_in_tcp_inbounds, ...built_in_udp_inbounds, ...tproxy_tcp_inbound_v6_tags, ...tproxy_udp_inbound_v6_tags],
+                        outboundTag: "dynamic_direct",
+                        domain: geosite_direct_code_list
+                    });
+                }
             }
             return direct_rules;
         }(),

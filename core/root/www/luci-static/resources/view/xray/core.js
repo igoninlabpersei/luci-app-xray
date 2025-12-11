@@ -553,6 +553,16 @@ return view.extend({
             geoip_direct_code_list_v6.datatype = "string";
         }
 
+        if (geosite_existence) {
+            let geosite_direct_code_list = s.taboption('outbound_routing', form.DynamicList, 'geosite_direct_code_list', _('GeoSite Direct Code List'), _("Domains in these GeoSite sets will use dynamic direct routing. Specify rules like <code>geosite:cn</code> or <code>geosite:geolocation-!cn</code>. See <a href=\"https://github.com/v2fly/domain-list-community\">documentation</a> for available categories."));
+            geosite_direct_code_list.datatype = "string";
+            geosite_direct_code_list.value("geosite:cn", "geosite:cn");
+        } else {
+            let geosite_direct_code_list = s.taboption('outbound_routing', form.DynamicList, 'geosite_direct_code_list', _('GeoSite Direct Code List'), _("Resource file /usr/share/xray/geosite.dat not exist. <br/> Compile your firmware again with data files to use this feature, or<br/><a href=\"https://github.com/v2fly/domain-list-community\">download one</a> (maybe disable transparent proxy first) and upload it to your router."));
+            geosite_direct_code_list.readonly = true;
+            geosite_direct_code_list.datatype = "string";
+        }
+
         o = s.taboption('outbound_routing', form.DynamicList, "wan_bp_ips", _("Bypassed IP"), _("Requests to these IPs won't be forwarded through Xray."));
         o.datatype = "ipaddr";
 
