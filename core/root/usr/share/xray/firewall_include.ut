@@ -3,7 +3,7 @@
     "use strict";
     import { stat } from "fs";
     import { load_config } from "./common/config.mjs";
-    import { dns_direct_servers } from "./feature/dns.mjs";
+    import { dns_direct_servers, extract_ip_from_dns_address } from "./feature/dns.mjs";
     const ignore_tp_spec_def_gw = stat("/usr/share/xray/ignore_tp_spec_def_gw");
     const config = load_config();
     const general = config[filter(keys(config), k => config[k][".type"] == "general")[0]];
@@ -16,11 +16,17 @@
     const gids_direct = uniq(general.gids_direct || []);
     let wan_bp_ips_no_dns = general.wan_bp_ips || [];
     let wan_fw_ips_no_dns = general.wan_fw_ips || [];
-    push(wan_bp_ips_no_dns, split(general.fast_dns || "223.5.5.5:53", ":")[0]);
+    const fast_dns_ip = extract_ip_from_dns_address(general.fast_dns || "223.5.5.5:53");
+    if (fast_dns_ip != null) {
+        push(wan_bp_ips_no_dns, fast_dns_ip);
+    }
     for (let i in dns_direct_servers(config)) {
         push(wan_bp_ips_no_dns, i);
     }
-    push(wan_fw_ips_no_dns, split(general.secure_dns || "8.8.8.8:53", ":")[0]);
+    const secure_dns_ip = extract_ip_from_dns_address(general.secure_dns || "8.8.8.8:53");
+    if (secure_dns_ip != null) {
+        push(wan_fw_ips_no_dns, secure_dns_ip);
+    }
     const wan_bp_ips_v4 = filter(uniq(wan_bp_ips_no_dns), v => index(v, ":") == -1);
     const wan_bp_ips_v6 = filter(uniq(wan_bp_ips_no_dns), v => index(v, ":") != -1);
     const wan_fw_ips_v4 = filter(uniq(wan_fw_ips_no_dns), v => index(v, ":") == -1);

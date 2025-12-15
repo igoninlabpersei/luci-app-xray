@@ -10,6 +10,10 @@ const fallback_default_dns = "1.1.1.1:53";
 const geoip_existence = access("/usr/share/xray/geoip.dat") || false;
 const geosite_existence = access("/usr/share/xray/geosite.dat") || false;
 
+function is_url(val) {
+    return substr(val, 0, 7) == "http://" || substr(val, 0, 8) == "https://" || substr(val, 0, 4) == "tls:";
+}
+
 function parse_ip_port(val, port_default) {
     const split_dot = split(val, ".");
     if (length(split_dot) > 1) {
@@ -32,7 +36,20 @@ function parse_ip_port(val, port_default) {
     };
 }
 
+function extract_ip_from_dns(val) {
+    if (is_url(val)) {
+        return null;
+    }
+    const parsed = parse_ip_port(val, 53);
+    return parsed["ip"];
+}
+
 function format_dns(method, val) {
+    if (is_url(val)) {
+        return {
+            address: val
+        };
+    }
     const parsed = parse_ip_port(val, 53);
     if (method == "udp") {
         return {
@@ -77,17 +94,22 @@ export function dns_server_inbounds(proxy) {
     let result = [];
     const dns_port = int(proxy["dns_port"] || 5300);
     const dns_count = int(proxy["dns_count"] || 3);
-    const default_dns = format_dns("udp", proxy["default_dns"] || fallback_default_dns);
+    const default_dns_val = proxy["default_dns"] || fallback_default_dns;
+    const default_dns_method = is_url(default_dns_val) ? (substr(default_dns_val, 0, 8) == "https://" ? "https" : (substr(default_dns_val, 0, 4) == "tls:" ? "tls" : "udp")) : "udp";
+    const default_dns = format_dns(default_dns_method, default_dns_val);
     for (let i = dns_port; i <= dns_port + dns_count; i++) {
+        let settings = {
+            address: default_dns["address"],
+            network: "tcp,udp"
+        };
+        if (default_dns["port"]) {
+            settings["port"] = default_dns["port"];
+        }
         push(result, {
             port: i,
             protocol: "dokodemo-door",
             tag: sprintf("dns_server_inbound:%d", i),
-            settings: {
-                address: default_dns["address"],
-                port: default_dns["port"],
-                network: "tcp,udp"
-            }
+            settings: settings
         });
     }
     return result;
@@ -151,8 +173,13 @@ export function dns_server_outbounds(proxy) {
 };
 
 export function dns_conf(proxy, config, manual_tproxy, fakedns) {
-    const fast_dns_object = format_dns("udp", proxy["fast_dns"] || fallback_fast_dns);
-    const default_dns_object = format_dns("udp", proxy["default_dns"] || fallback_default_dns);
+    const fast_dns_val = proxy["fast_dns"] || fallback_fast_dns;
+    const fast_dns_method = is_url(fast_dns_val) ? (substr(fast_dns_val, 0, 8) == "https://" ? "https" : (substr(fast_dns_val, 0, 4) == "tls:" ? "tls" : "udp")) : "udp";
+    const fast_dns_object = format_dns(fast_dns_method, fast_dns_val);
+    
+    const default_dns_val = proxy["default_dns"] || fallback_default_dns;
+    const default_dns_method = is_url(default_dns_val) ? (substr(default_dns_val, 0, 8) == "https://" ? "https" : (substr(default_dns_val, 0, 4) == "tls:" ? "tls" : "udp")) : "udp";
+    const default_dns_object = format_dns(default_dns_method, default_dns_val);
 
     let domain_names_set = {};
     let domain_extra_options = {};
@@ -183,7 +210,7 @@ export function dns_conf(proxy, config, manual_tproxy, fakedns) {
             const resolve_dns_object = format_dns(dns_split[0], dns_split[1]);
             let result = {
                 address: resolve_dns_object["address"],
-                port: resolve_dns_object["port"],
+                ...(resolve_dns_object["port"] ? { port: resolve_dns_object["port"] } : {}),
                 domains: uniq(resolve_merged[k]),
                 skipFallback: true,
             };
@@ -200,20 +227,25 @@ export function dns_conf(proxy, config, manual_tproxy, fakedns) {
             }
             return result;
         }),
-        default_dns_object,
+        {
+            address: default_dns_object["address"],
+            ...(default_dns_object["port"] ? { port: default_dns_object["port"] } : {}),
+        },
         {
             address: fast_dns_object["address"],
-            port: fast_dns_object["port"],
+            ...(fast_dns_object["port"] ? { port: fast_dns_object["port"] } : {}),
             domains: [...keys(domain_names_set), ...fast_domain_rules(proxy)],
             skipFallback: true,
         },
     ];
 
     if (length(secure_domain_rules(proxy)) > 0) {
-        const secure_dns_object = format_dns("udp", proxy["secure_dns"] || fallback_secure_dns);
+        const secure_dns_val = proxy["secure_dns"] || fallback_secure_dns;
+        const secure_dns_method = is_url(secure_dns_val) ? (substr(secure_dns_val, 0, 8) == "https://" ? "https" : (substr(secure_dns_val, 0, 4) == "tls:" ? "tls" : "udp")) : "udp";
+        const secure_dns_object = format_dns(secure_dns_method, secure_dns_val);
         push(servers, {
             address: secure_dns_object["address"],
-            port: secure_dns_object["port"],
+            ...(secure_dns_object["port"] ? { port: secure_dns_object["port"] } : {}),
             domains: secure_domain_rules(proxy),
         });
     }
@@ -251,9 +283,16 @@ export function dns_direct_servers(config) {
         }
         if (server["domain_resolve_dns"]) {
             if (index(server["domain_resolve_dns_method"], "local") > 1) {
-                push(result, parse_ip_port(server["domain_resolve_dns"])["ip"]);
+                const ip = extract_ip_from_dns(server["domain_resolve_dns"]);
+                if (ip != null) {
+                    push(result, ip);
+                }
             }
         }
     }
     return result;
+};
+
+export function extract_ip_from_dns_address(val) {
+    return extract_ip_from_dns(val);
 };

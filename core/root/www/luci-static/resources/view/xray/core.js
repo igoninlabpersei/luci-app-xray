@@ -424,8 +424,8 @@ return view.extend({
 
         s.tab('dns', _('DNS'));
 
-        o = s.taboption('dns', form.Value, 'fast_dns', _('Fast DNS'), _("DNS for resolving outbound domains and following bypassed domains"));
-        o.datatype = 'or(ip4addr, ip4addrport)';
+        o = s.taboption('dns', form.Value, 'fast_dns', _('Fast DNS'), _("DNS for resolving outbound domains and following bypassed domains. Can be IP address (e.g., <code>223.5.5.5:53</code>), DoH URL (e.g., <code>https://dns.cloudflare.com/dns-query</code>), or DoT (e.g., <code>tls://1.1.1.1:853</code>)."));
+        o.datatype = 'string';
         o.placeholder = "223.5.5.5:53";
 
         if (geosite_existence) {
@@ -434,8 +434,8 @@ return view.extend({
             o = s.taboption('dns', form.DynamicList, 'bypassed_domain_rules', _('Bypassed domain rules'), _('Specify rules like <code>domain:bilibili.com</code> or see <a href="https://xtls.github.io/config/dns.html#dnsobject">documentation</a> for details.<br/> In order to use Geosite rules you need a valid resource file /usr/share/xray/geosite.dat.<br/>Compile your firmware again with data files to use Geosite rules, or <a href="https://github.com/v2fly/domain-list-community">download one</a> and upload it to your router.'));
         }
 
-        o = s.taboption('dns', form.Value, 'secure_dns', _('Secure DNS'), _("DNS for resolving known polluted domains (specify forwarded domain rules here)"));
-        o.datatype = 'or(ip4addr, ip4addrport)';
+        o = s.taboption('dns', form.Value, 'secure_dns', _('Secure DNS'), _("DNS for resolving known polluted domains (specify forwarded domain rules here). Can be IP address (e.g., <code>8.8.8.8:53</code>), DoH URL (e.g., <code>https://dns.google/dns-query</code>), or DoT (e.g., <code>tls://8.8.8.8:853</code>)."));
+        o.datatype = 'string';
         o.placeholder = "8.8.8.8:53";
 
         if (geosite_existence) {
@@ -444,8 +444,8 @@ return view.extend({
             o = s.taboption('dns', form.DynamicList, 'forwarded_domain_rules', _('Forwarded domain rules'), _('Specify rules like <code>domain:youtube.com</code> or see <a href="https://xtls.github.io/config/dns.html#dnsobject">documentation</a> for details.<br/> In order to use Geosite rules you need a valid resource file /usr/share/xray/geosite.dat.<br/>Compile your firmware again with data files to use Geosite rules, or <a href="https://github.com/v2fly/domain-list-community">download one</a> and upload it to your router.'));
         }
 
-        o = s.taboption('dns', form.Value, 'default_dns', _('Default DNS'), _("DNS for resolving other sites (not in the rules above) and DNS records other than A or AAAA (TXT and MX for example)"));
-        o.datatype = 'or(ip4addr, ip4addrport)';
+        o = s.taboption('dns', form.Value, 'default_dns', _('Default DNS'), _("DNS for resolving other sites (not in the rules above) and DNS records other than A or AAAA (TXT and MX for example). Can be IP address (e.g., <code>1.1.1.1:53</code>), DoH URL (e.g., <code>https://1.1.1.1/dns-query</code>), or DoT (e.g., <code>tls://1.1.1.1:853</code>)."));
+        o.datatype = 'string';
         o.placeholder = "1.1.1.1:53";
 
         if (geosite_existence) {
