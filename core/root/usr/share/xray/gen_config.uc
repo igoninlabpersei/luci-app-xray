@@ -125,6 +125,9 @@ function rules(proxy, bridge, manual_tproxy, extra_inbound, fakedns) {
         ...dns_rules(proxy, [...tproxy_tcp_inbound_v6_tags, ...tproxy_tcp_inbound_v4_tags, ...extra_inbound_global_tcp_tags], [...tproxy_udp_inbound_v6_tags, ...tproxy_udp_inbound_v4_tags, ...extra_inbound_global_udp_tags]),
         ...function () {
             let direct_rules = [];
+            let forward_rules = [];
+            const default_route_to_direct = proxy["default_route_to_direct"] == "1";
+            
             if (geoip_existence) {
                 const geoip_direct_code_list = map(proxy["geoip_direct_code_list"] || [], v => index(v, ":") > 0 ? v : `geoip:${v}`);
                 if (length(geoip_direct_code_list) > 0) {
@@ -150,6 +153,37 @@ function rules(proxy, bridge, manual_tproxy, extra_inbound, fakedns) {
                     outboundTag: "direct",
                     ip: ["geoip:private"]
                 });
+                
+                if (default_route_to_direct) {
+                    const geoip_forward_code_list = map(proxy["geoip_forward_code_list"] || [], v => index(v, ":") > 0 ? v : `geoip:${v}`);
+                    if (length(geoip_forward_code_list) > 0) {
+                        push(forward_rules, {
+                            type: "field",
+                            inboundTag: [...built_in_tcp_inbounds, ...built_in_udp_inbounds],
+                            balancerTag: "tcp_outbound_v4",
+                            ip: geoip_forward_code_list
+                        }, {
+                            type: "field",
+                            inboundTag: [...built_in_tcp_inbounds, ...built_in_udp_inbounds],
+                            balancerTag: "udp_outbound_v4",
+                            ip: geoip_forward_code_list
+                        });
+                    }
+                    const geoip_forward_code_list_v6 = map(proxy["geoip_forward_code_list_v6"] || [], v => index(v, ":") > 0 ? v : `geoip:${v}`);
+                    if (length(geoip_forward_code_list_v6) > 0) {
+                        push(forward_rules, {
+                            type: "field",
+                            inboundTag: [...tproxy_tcp_inbound_v6_tags, ...tproxy_udp_inbound_v6_tags],
+                            balancerTag: "tcp_outbound_v6",
+                            ip: geoip_forward_code_list_v6
+                        }, {
+                            type: "field",
+                            inboundTag: [...tproxy_tcp_inbound_v6_tags, ...tproxy_udp_inbound_v6_tags],
+                            balancerTag: "udp_outbound_v6",
+                            ip: geoip_forward_code_list_v6
+                        });
+                    }
+                }
             }
             if (geosite_existence) {
                 const geosite_direct_code_list = map(proxy["geosite_direct_code_list"] || [], v => index(v, ":") > 0 ? v : `geosite:${v}`);
@@ -161,29 +195,86 @@ function rules(proxy, bridge, manual_tproxy, extra_inbound, fakedns) {
                         domain: geosite_direct_code_list
                     });
                 }
+                
+                if (default_route_to_direct) {
+                    const geosite_forward_code_list = map(proxy["geosite_forward_code_list"] || [], v => index(v, ":") > 0 ? v : `geosite:${v}`);
+                    if (length(geosite_forward_code_list) > 0) {
+                        push(forward_rules, {
+                            type: "field",
+                            inboundTag: [...built_in_tcp_inbounds, ...built_in_udp_inbounds, ...tproxy_tcp_inbound_v6_tags, ...tproxy_udp_inbound_v6_tags],
+                            balancerTag: "tcp_outbound_v4",
+                            domain: geosite_forward_code_list
+                        }, {
+                            type: "field",
+                            inboundTag: [...built_in_tcp_inbounds, ...built_in_udp_inbounds, ...tproxy_tcp_inbound_v6_tags, ...tproxy_udp_inbound_v6_tags],
+                            balancerTag: "udp_outbound_v4",
+                            domain: geosite_forward_code_list
+                        }, {
+                            type: "field",
+                            inboundTag: [...built_in_tcp_inbounds, ...built_in_udp_inbounds, ...tproxy_tcp_inbound_v6_tags, ...tproxy_udp_inbound_v6_tags],
+                            balancerTag: "tcp_outbound_v6",
+                            domain: geosite_forward_code_list
+                        }, {
+                            type: "field",
+                            inboundTag: [...built_in_tcp_inbounds, ...built_in_udp_inbounds, ...tproxy_tcp_inbound_v6_tags, ...tproxy_udp_inbound_v6_tags],
+                            balancerTag: "udp_outbound_v6",
+                            domain: geosite_forward_code_list
+                        });
+                    }
+                }
             }
-            return direct_rules;
+            return [...forward_rules, ...direct_rules];
         }(),
-        {
-            type: "field",
-            inboundTag: tproxy_tcp_inbound_v6_tags,
-            balancerTag: "tcp_outbound_v6"
-        },
-        {
-            type: "field",
-            inboundTag: tproxy_udp_inbound_v6_tags,
-            balancerTag: "udp_outbound_v6"
-        },
-        {
-            type: "field",
-            inboundTag: built_in_tcp_inbounds,
-            balancerTag: "tcp_outbound_v4"
-        },
-        {
-            type: "field",
-            inboundTag: built_in_udp_inbounds,
-            balancerTag: "udp_outbound_v4"
-        },
+        ...function () {
+            const default_route_to_direct = proxy["default_route_to_direct"] == "1";
+            if (default_route_to_direct) {
+                return [
+                    {
+                        type: "field",
+                        inboundTag: tproxy_tcp_inbound_v6_tags,
+                        outboundTag: "dynamic_direct"
+                    },
+                    {
+                        type: "field",
+                        inboundTag: tproxy_udp_inbound_v6_tags,
+                        outboundTag: "dynamic_direct"
+                    },
+                    {
+                        type: "field",
+                        inboundTag: built_in_tcp_inbounds,
+                        outboundTag: "dynamic_direct"
+                    },
+                    {
+                        type: "field",
+                        inboundTag: built_in_udp_inbounds,
+                        outboundTag: "dynamic_direct"
+                    }
+                ];
+            } else {
+                return [
+                    {
+                        type: "field",
+                        inboundTag: tproxy_tcp_inbound_v6_tags,
+                        balancerTag: "tcp_outbound_v6"
+                    },
+                    {
+                        type: "field",
+                        inboundTag: tproxy_udp_inbound_v6_tags,
+                        balancerTag: "udp_outbound_v6"
+                    },
+                    {
+                        type: "field",
+                        inboundTag: built_in_tcp_inbounds,
+                        balancerTag: "tcp_outbound_v4"
+                    },
+                    {
+                        type: "field",
+                        inboundTag: built_in_udp_inbounds,
+                        balancerTag: "udp_outbound_v4"
+                    }
+                ];
+            }
+        }(),
     ];
     if (proxy["tproxy_sniffing"] == "1") {
         if (length(secure_domain_rules(proxy)) > 0) {

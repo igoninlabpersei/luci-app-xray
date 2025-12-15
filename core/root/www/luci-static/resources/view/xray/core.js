@@ -543,6 +543,14 @@ return view.extend({
             geoip_direct_code_list_v6.datatype = "string";
             geoip_direct_code_list_v6.value("cn", "cn");
             geoip_direct_code_list_v6.value("telegram", "telegram");
+
+            let geoip_forward_code_list = s.taboption('outbound_routing', form.DynamicList, 'geoip_forward_code_list', _('GeoIP Forward Code List (IPv4)'), _("Hosts in these GeoIP sets will be forwarded through Xray tunnel. Specify rules like <code>us</code> or <code>geoip:us</code>."));
+            geoip_forward_code_list.datatype = "string";
+            geoip_forward_code_list.value("us", "us");
+
+            let geoip_forward_code_list_v6 = s.taboption('outbound_routing', form.DynamicList, 'geoip_forward_code_list_v6', _('GeoIP Forward Code List (IPv6)'), _("Hosts in these GeoIP sets will be forwarded through Xray tunnel. Specify rules like <code>us</code> or <code>geoip:us</code>."));
+            geoip_forward_code_list_v6.datatype = "string";
+            geoip_forward_code_list_v6.value("us", "us");
         } else {
             let geoip_direct_code_list = s.taboption('outbound_routing', form.DynamicList, 'geoip_direct_code_list', _('GeoIP Direct Code List (IPv4)'), _("Resource file /usr/share/xray/geoip.dat not exist. All network traffic will be forwarded. <br/> Compile your firmware again with data files to use this feature, or<br/><a href=\"https://github.com/v2fly/geoip\">download one</a> (maybe disable transparent proxy first) and upload it to your router."));
             geoip_direct_code_list.readonly = true;
@@ -551,16 +559,32 @@ return view.extend({
             let geoip_direct_code_list_v6 = s.taboption('outbound_routing', form.DynamicList, 'geoip_direct_code_list_v6', _('GeoIP Direct Code List (IPv6)'), _("Resource file /usr/share/xray/geoip.dat not exist. All network traffic will be forwarded. <br/> Compile your firmware again with data files to use this feature, or<br/><a href=\"https://github.com/v2fly/geoip\">download one</a> (maybe disable transparent proxy first) and upload it to your router."));
             geoip_direct_code_list_v6.readonly = true;
             geoip_direct_code_list_v6.datatype = "string";
+
+            let geoip_forward_code_list = s.taboption('outbound_routing', form.DynamicList, 'geoip_forward_code_list', _('GeoIP Forward Code List (IPv4)'), _("Resource file /usr/share/xray/geoip.dat not exist. <br/> Compile your firmware again with data files to use this feature, or<br/><a href=\"https://github.com/v2fly/geoip\">download one</a> (maybe disable transparent proxy first) and upload it to your router."));
+            geoip_forward_code_list.readonly = true;
+            geoip_forward_code_list.datatype = "string";
+
+            let geoip_forward_code_list_v6 = s.taboption('outbound_routing', form.DynamicList, 'geoip_forward_code_list_v6', _('GeoIP Forward Code List (IPv6)'), _("Resource file /usr/share/xray/geoip.dat not exist. <br/> Compile your firmware again with data files to use this feature, or<br/><a href=\"https://github.com/v2fly/geoip\">download one</a> (maybe disable transparent proxy first) and upload it to your router."));
+            geoip_forward_code_list_v6.readonly = true;
+            geoip_forward_code_list_v6.datatype = "string";
         }
 
         if (geosite_existence) {
             let geosite_direct_code_list = s.taboption('outbound_routing', form.DynamicList, 'geosite_direct_code_list', _('GeoSite Direct Code List'), _("Domains in these GeoSite sets will use dynamic direct routing. Specify rules like <code>geosite:cn</code> or <code>geosite:geolocation-!cn</code>. See <a href=\"https://github.com/v2fly/domain-list-community\">documentation</a> for available categories."));
             geosite_direct_code_list.datatype = "string";
             geosite_direct_code_list.value("geosite:cn", "geosite:cn");
+
+            let geosite_forward_code_list = s.taboption('outbound_routing', form.DynamicList, 'geosite_forward_code_list', _('GeoSite Forward Code List'), _("Domains in these GeoSite sets will be forwarded through Xray tunnel. Specify rules like <code>geosite:geolocation-!cn</code> or <code>geosite:google</code>. See <a href=\"https://github.com/v2fly/domain-list-community\">documentation</a> for available categories."));
+            geosite_forward_code_list.datatype = "string";
+            geosite_forward_code_list.value("geosite:geolocation-!cn", "geosite:geolocation-!cn");
         } else {
             let geosite_direct_code_list = s.taboption('outbound_routing', form.DynamicList, 'geosite_direct_code_list', _('GeoSite Direct Code List'), _("Resource file /usr/share/xray/geosite.dat not exist. <br/> Compile your firmware again with data files to use this feature, or<br/><a href=\"https://github.com/v2fly/domain-list-community\">download one</a> (maybe disable transparent proxy first) and upload it to your router."));
             geosite_direct_code_list.readonly = true;
             geosite_direct_code_list.datatype = "string";
+
+            let geosite_forward_code_list = s.taboption('outbound_routing', form.DynamicList, 'geosite_forward_code_list', _('GeoSite Forward Code List'), _("Resource file /usr/share/xray/geosite.dat not exist. <br/> Compile your firmware again with data files to use this feature, or<br/><a href=\"https://github.com/v2fly/domain-list-community\">download one</a> (maybe disable transparent proxy first) and upload it to your router."));
+            geosite_forward_code_list.readonly = true;
+            geosite_forward_code_list.datatype = "string";
         }
 
         o = s.taboption('outbound_routing', form.DynamicList, "wan_bp_ips", _("Bypassed IP"), _("Requests to these IPs won't be forwarded through Xray."));
@@ -568,6 +592,9 @@ return view.extend({
 
         o = s.taboption('outbound_routing', form.DynamicList, "wan_fw_ips", _("Forwarded IP"), _("Requests to these IPs will always be handled by Xray (but still might be bypassed by Xray itself, like private addresses).<br/>Useful for some really strange network. If you really need to forward private addresses, try Manual Transparent Proxy below."));
         o.datatype = "ipaddr";
+
+        o = s.taboption('outbound_routing', form.Flag, 'default_route_to_direct', _('Default Route to Direct'), _('When enabled, by default all traffic will be routed to dynamic_direct, and only traffic matching geosite/geoip forwarding rules will be routed through the tunnel.'));
+        o.default = "0";
 
         o = s.taboption('outbound_routing', form.ListValue, 'transparent_default_port_policy', _('Default Ports Policy'));
         o.value("forwarded", _("Forwarded"));

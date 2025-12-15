@@ -32,6 +32,7 @@
     const wan_fw_ips_v4 = filter(uniq(wan_fw_ips_no_dns), v => index(v, ":") == -1);
     const wan_fw_ips_v6 = filter(uniq(wan_fw_ips_no_dns), v => index(v, ":") != -1);
     const transparent_default_port_policy = general.transparent_default_port_policy || "forwarded";
+    const default_route_to_direct = general.default_route_to_direct == "1";
     const wan_fw_tcp_ports = general.wan_fw_tcp_ports || [];
     const wan_fw_udp_ports = general.wan_fw_udp_ports || [];
     const wan_bp_tcp_ports = general.wan_bp_tcp_ports || [];
@@ -574,8 +575,13 @@
 {% if (general.dynamic_direct_udp6 == "1"): %}
         ip6 nexthdr udp ip6 daddr @tp_spec_dv6_dd {{ counter }} goto tp_spec_lan_ct comment "Xray dynamic direct UDP6"
 {% endif %}
+{% if (default_route_to_direct): %}
+        meta l4proto tcp {{ counter }} {{ dynamic_direct_conntrack_tcp }} ct mark set 0x000000fa accept comment "Xray default route to direct TCP"
+        meta l4proto udp {{ counter }} {{ dynamic_direct_conntrack_udp }} ct mark set 0x000000fa accept comment "Xray default route to direct UDP"
+{% else %}
         meta l4proto tcp {{ counter }} {{ dynamic_direct_conntrack_tcp }} goto tp_spec_lan_fw
         meta l4proto udp {{ counter }} {{ dynamic_direct_conntrack_udp }} goto tp_spec_lan_fw
+{% endif %}
         {{ counter }} accept
     }
 
